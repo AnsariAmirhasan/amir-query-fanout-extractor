@@ -346,6 +346,20 @@ button[kind="primary"] {
 .stSlider > div > div > div > div {
     background: linear-gradient(90deg, #6366f1, #8b5cf6) !important;
 }
+.stSlider [data-testid="stTickBarMin"],
+.stSlider [data-testid="stTickBarMax"],
+.stSlider div[data-baseweb="slider"] div[role="slider"] + div,
+.stSlider > div > div > div > div > div {
+    color: #ffffff !important;
+}
+/* Remove background from slider value numbers */
+.stSlider [data-testid="stThumbValue"],
+.stSlider div[data-baseweb="slider"] div[data-testid],
+section[data-testid="stSidebar"] .stSlider div {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: #ffffff !important;
+}
 
 /* ── Expander ── */
 .streamlit-expanderHeader,
