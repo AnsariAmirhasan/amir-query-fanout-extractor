@@ -24,6 +24,14 @@ st.markdown("""
 
 /* ── Global Reset ── */
 *, *::before, *::after { font-family: 'Inter', sans-serif !important; }
+/* Preserve Material icon fonts for Streamlit UI controls */
+.material-symbols-rounded,
+.material-symbols-outlined,
+.material-icons,
+[data-testid="stSidebarCollapseButton"] span,
+[data-testid="collapsedControl"] span {
+    font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+}
 
 .stApp {
     background: linear-gradient(160deg, #07071a 0%, #0c0f1f 30%, #0f1629 60%, #111827 100%);
