@@ -343,21 +343,17 @@ button[kind="primary"] {
 }
 
 /* ── Slider ── */
-.stSlider > div > div > div > div {
+/* Track fill color */
+.stSlider > div > div > div > div[role="progressbar"] {
     background: linear-gradient(90deg, #6366f1, #8b5cf6) !important;
 }
+/* Min and max label text */
 .stSlider [data-testid="stTickBarMin"],
-.stSlider [data-testid="stTickBarMax"],
-.stSlider div[data-baseweb="slider"] div[role="slider"] + div,
-.stSlider > div > div > div > div > div {
-    color: #ffffff !important;
+.stSlider [data-testid="stTickBarMax"] {
+    color: #94a3b8 !important;
 }
-/* Remove background from slider value numbers */
-.stSlider [data-testid="stThumbValue"],
-.stSlider div[data-baseweb="slider"] div[data-testid],
-section[data-testid="stSidebar"] .stSlider div {
-    background: transparent !important;
-    background-color: transparent !important;
+/* Current value on thumb */
+.stSlider [data-testid="stThumbValue"] {
     color: #ffffff !important;
 }
 
