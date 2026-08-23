@@ -239,12 +239,39 @@ section[data-testid="stSidebar"] .stMarkdown h3 {
 }
 
 /* ── Expander ── */
-.streamlit-expanderHeader {
+.streamlit-expanderHeader,
+div[data-testid="stExpander"] summary {
     background: rgba(30,30,60,0.4) !important;
     border-radius: 12px !important;
     border: 1px solid rgba(99,102,241,0.15) !important;
     color: #a5b4fc !important;
     font-weight: 600 !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    padding: 1rem 1.2rem !important;
+}
+div[data-testid="stExpander"] summary span {
+    color: #a5b4fc !important;
+    overflow: visible !important;
+    white-space: normal !important;
+}
+div[data-testid="stExpander"] summary svg {
+    flex-shrink: 0;
+    margin-right: 8px;
+}
+
+/* ── Download Button Fix ── */
+.stDownloadButton {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* ── General Text Visibility ── */
+.stMarkdown, .stMarkdown p, .stMarkdown li {
+    color: #e2e8f0 !important;
+}
+label, .stTextInput label, .stSelectbox label {
+    color: #cbd5e1 !important;
 }
 
 /* ── Scrollbar ── */
@@ -274,7 +301,7 @@ with st.sidebar:
     )
 
     model_options = [
-        "gemini-3.7-flash",
+        "gemini-3.6-flash",
         "gemini-3.5-flash-lite",
         "gemini-2.5-flash",
         "gemini-2.5-pro",
@@ -283,7 +310,7 @@ with st.sidebar:
         "Select Model",
         options=model_options,
         index=0,
-        help="gemini-3.7-flash is recommended for best results",
+        help="gemini-3.6-flash is recommended for best results",
     )
 
     st.markdown("---")
