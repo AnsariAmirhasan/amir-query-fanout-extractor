@@ -408,10 +408,32 @@ div[data-testid="stAlert"] {
 }
 .app-footer a { color: #6366f1; text-decoration: none; }
 
-/* ── Hide Streamlit Defaults ── */
+/* ── Hide Streamlit Defaults (keep sidebar toggle visible) ── */
 #MainMenu { visibility: hidden; }
-header { visibility: hidden; }
 footer { visibility: hidden; }
+header[data-testid="stHeader"] {
+    background: transparent !important;
+    backdrop-filter: none !important;
+}
+/* Hide the header decoration but keep sidebar toggle button */
+header[data-testid="stHeader"]::after { display: none; }
+
+/* Style the sidebar toggle button */
+button[data-testid="stSidebarCollapseButton"],
+button[data-testid="collapsedControl"] {
+    color: #a5b4fc !important;
+    background: rgba(25,25,55,0.8) !important;
+    border: 1px solid rgba(99,102,241,0.2) !important;
+    border-radius: 10px !important;
+    backdrop-filter: blur(12px) !important;
+    transition: all 0.3s ease !important;
+}
+button[data-testid="stSidebarCollapseButton"]:hover,
+button[data-testid="collapsedControl"]:hover {
+    background: rgba(99,102,241,0.2) !important;
+    border-color: rgba(99,102,241,0.4) !important;
+    box-shadow: 0 4px 15px rgba(99,102,241,0.15) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
