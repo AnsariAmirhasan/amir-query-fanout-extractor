@@ -1,7 +1,7 @@
 """
 Google Query Fan-Out Extractor
 Extract hidden sub-queries that Google AI Overviews run internally.
-Built with Streamlit + Google Gemini API + OpenAI ChatGPT.
+Built with Streamlit + Google Gemini API + OpenAI ChatGPT + Anthropic Claude.
 """
 
 import streamlit as st
@@ -295,7 +295,7 @@ with st.sidebar:
 
     ai_provider = st.selectbox(
         "AI Provider",
-        options=["Google Gemini", "ChatGPT (OpenAI)"],
+        options=["Google Gemini", "ChatGPT (OpenAI)", "Claude (Anthropic)"],
         index=0,
         help="Choose which AI provider to use for extraction",
     )
@@ -340,6 +340,26 @@ with st.sidebar:
             index=0,
             help="gpt-4o is recommended for best results",
         )
+    else:
+        api_key = st.text_input(
+            "Anthropic API Key",
+            type="password",
+            placeholder="Paste your Anthropic API key (sk-ant-…)",
+            help="Get your key → https://console.anthropic.com/settings/keys",
+        )
+
+        model_options = [
+            "claude-sonnet-4-20250514",
+            "claude-haiku-4-20250514",
+            "claude-3-5-sonnet-20241022",
+            "claude-3-5-haiku-20241022",
+        ]
+        selected_model = st.selectbox(
+            "Select Model",
+            options=model_options,
+            index=0,
+            help="Claude Sonnet 4 is recommended for best results",
+        )
 
     query_count = st.slider(
         "Number of Queries",
@@ -362,6 +382,8 @@ with st.sidebar:
             exceeded, Gemini predicts fan-out queries.<br><br>
             <strong>ChatGPT:</strong> AI Prediction only — generates realistic
             fan-out queries using OpenAI models.<br><br>
+            <strong>Claude:</strong> AI Prediction only — generates realistic
+            fan-out queries using Anthropic models.<br><br>
             Fallback runs automatically.
         </div>
         """,
@@ -371,7 +393,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(
         "<div style='text-align:center; color:#475569; font-size:0.7rem;'>"
-        "Built with ❤️ by Amir • Powered by Gemini & ChatGPT</div>",
+        "Built with ❤️ by Amir • Gemini • ChatGPT • Claude</div>",
         unsafe_allow_html=True,
     )
 
@@ -497,6 +519,26 @@ def extract_via_chatgpt(api_key: str, model: str, query: str, num_queries: int =
     return fan_out_queries, answer_text
 
 
+def extract_via_claude(api_key: str, model: str, query: str, num_queries: int = 15):
+    """Extract fan-out queries using Anthropic Claude."""
+    import anthropic
+
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = _build_fanout_prompt(query, num_queries)
+
+    response = client.messages.create(
+        model=model,
+        max_tokens=1024,
+        messages=[
+            {"role": "user", "content": prompt},
+        ],
+    )
+
+    answer_text = response.content[0].text if response.content else ""
+    fan_out_queries = _parse_numbered_list(answer_text)
+    return fan_out_queries, answer_text
+
+
 def run_extraction(api_key: str, model: str, query: str, num_queries: int = 15, provider: str = "Google Gemini"):
     """Smart dual-mode extraction with automatic fallback."""
 
@@ -504,6 +546,11 @@ def run_extraction(api_key: str, model: str, query: str, num_queries: int = 15, 
     if provider == "ChatGPT (OpenAI)":
         fan_out_queries, answer_text = extract_via_chatgpt(api_key, model, query, num_queries)
         return fan_out_queries, answer_text, "chatgpt"
+
+    # ── Claude path (prompt-only) ──
+    if provider == "Claude (Anthropic)":
+        fan_out_queries, answer_text = extract_via_claude(api_key, model, query, num_queries)
+        return fan_out_queries, answer_text, "claude"
 
     # ── Gemini path (grounding → prompt fallback) ──
     from google import genai
@@ -543,10 +590,15 @@ if extract_btn:
                 "⚠️ Please enter your Gemini API Key in the sidebar.  \n"
                 "Get a free key → [Google AI Studio](https://aistudio.google.com/apikey)"
             )
-        else:
+        elif ai_provider == "ChatGPT (OpenAI)":
             st.error(
                 "⚠️ Please enter your OpenAI API Key in the sidebar.  \n"
                 "Get your key → [OpenAI Platform](https://platform.openai.com/api-keys)"
+            )
+        else:
+            st.error(
+                "⚠️ Please enter your Anthropic API Key in the sidebar.  \n"
+                "Get your key → [Anthropic Console](https://console.anthropic.com/settings/keys)"
             )
         st.stop()
 
@@ -562,16 +614,21 @@ if extract_btn:
             )
         except Exception as e:
             error_msg = str(e)
-            if "api_key" in error_msg.lower() or "invalid" in error_msg.lower() or "401" in error_msg or "incorrect api key" in error_msg.lower():
+            if "api_key" in error_msg.lower() or "invalid" in error_msg.lower() or "401" in error_msg or "incorrect api key" in error_msg.lower() or "authentication" in error_msg.lower():
                 if ai_provider == "Google Gemini":
                     st.error(
                         "❌ **Invalid API Key.** Please check your Gemini key and try again.  \n"
                         "Get a free key → [Google AI Studio](https://aistudio.google.com/apikey)"
                     )
-                else:
+                elif ai_provider == "ChatGPT (OpenAI)":
                     st.error(
                         "❌ **Invalid API Key.** Please check your OpenAI key and try again.  \n"
                         "Get your key → [OpenAI Platform](https://platform.openai.com/api-keys)"
+                    )
+                else:
+                    st.error(
+                        "❌ **Invalid API Key.** Please check your Anthropic key and try again.  \n"
+                        "Get your key → [Anthropic Console](https://console.anthropic.com/settings/keys)"
                     )
             else:
                 st.error(f"❌ An error occurred: {error_msg}")
@@ -595,6 +652,15 @@ if extract_btn:
             '<div class="method-banner" style="background:linear-gradient(135deg,rgba(16,163,127,0.12),rgba(16,163,127,0.06));'
             'border:1px solid rgba(16,163,127,0.25);color:#4ade80;">'
             '🤖 Generated via <strong>ChatGPT (' + selected_model + ')</strong> — '
+            'AI-predicted fan-out queries for this topic'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+    elif method_used == "claude":
+        st.markdown(
+            '<div class="method-banner" style="background:linear-gradient(135deg,rgba(217,119,87,0.12),rgba(217,119,87,0.06));'
+            'border:1px solid rgba(217,119,87,0.25);color:#f0a882;">'
+            '🧊 Generated via <strong>Claude (' + selected_model.split('-202')[0] + ')</strong> — '
             'AI-predicted fan-out queries for this topic'
             '</div>',
             unsafe_allow_html=True,
@@ -678,8 +744,9 @@ if extract_btn:
         use_container_width=True,
     )
 
-    # ── Gemini/ChatGPT Answer Expander ──
+    # ── AI Answer Expander ──
     if answer_text:
-        expander_label = "🤖 View ChatGPT's Full Answer" if method_used == "chatgpt" else "🤖 View Gemini's Full Answer"
+        label_map = {"chatgpt": "🤖 View ChatGPT's Full Answer", "claude": "🧊 View Claude's Full Answer"}
+        expander_label = label_map.get(method_used, "🤖 View Gemini's Full Answer")
         with st.expander(expander_label, expanded=False):
             st.markdown(answer_text)
