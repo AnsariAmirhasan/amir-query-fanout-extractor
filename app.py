@@ -24,13 +24,15 @@ st.markdown("""
 
 /* ── Global Reset ── */
 *, *::before, *::after { font-family: 'Inter', sans-serif !important; }
-/* Preserve Material icon fonts for Streamlit UI controls */
-.material-symbols-rounded,
-.material-symbols-outlined,
-.material-icons,
-[data-testid="stSidebarCollapseButton"] span,
-[data-testid="collapsedControl"] span {
-    font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons' !important;
+/* Preserve ALL Material icon fonts used by Streamlit controls */
+span[class*="material"],
+i[class*="material"],
+[data-testid="stSidebarCollapseButton"] *,
+[data-testid="collapsedControl"] *,
+[data-testid="stSidebarNav"] *,
+.stAppCollapseSidebar *,
+button[kind="headerNoPadding"] * {
+    font-family: 'Material Symbols Rounded', 'Material Symbols Outlined', 'Material Icons Round', 'Material Icons' !important;
 }
 
 .stApp {
