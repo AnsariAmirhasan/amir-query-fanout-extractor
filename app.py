@@ -421,7 +421,7 @@ def run_extraction(api_key: str, model: str, query: str):
     except Exception as e:
         error_str = str(e).lower()
         # Check for quota / rate-limit / grounding-specific errors → fallback silently
-        if any(kw in error_str for kw in ["quota", "rate", "limit", "429", "resource_exhausted", "grounding"]):
+        if any(kw in error_str for kw in ["quota", "rate", "limit", "429", "503", "resource_exhausted", "grounding", "unavailable", "overloaded", "capacity", "high demand"]):
             method_used = "prompt"
             try:
                 fan_out_queries, answer_text = extract_via_prompt(client, model, query)
