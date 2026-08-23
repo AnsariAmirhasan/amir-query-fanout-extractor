@@ -1,7 +1,7 @@
 """
 Google Query Fan-Out Extractor
 Extract hidden sub-queries that Google AI Overviews run internally.
-Built with Streamlit + Google Gemini API.
+Built with Streamlit + Google Gemini API + OpenAI ChatGPT.
 """
 
 import streamlit as st
@@ -293,25 +293,53 @@ with st.sidebar:
     st.markdown("### 🔐 Configuration")
     st.markdown("---")
 
-    api_key = st.text_input(
-        "Google Gemini API Key",
-        type="password",
-        placeholder="Paste your API key here…",
-        help="Get your free key → https://aistudio.google.com/apikey",
+    ai_provider = st.selectbox(
+        "AI Provider",
+        options=["Google Gemini", "ChatGPT (OpenAI)"],
+        index=0,
+        help="Choose which AI provider to use for extraction",
     )
 
-    model_options = [
-        "gemini-3.6-flash",
-        "gemini-3.5-flash-lite",
-        "gemini-2.5-flash",
-        "gemini-2.5-pro",
-    ]
-    selected_model = st.selectbox(
-        "Select Model",
-        options=model_options,
-        index=0,
-        help="gemini-3.6-flash is recommended for best results",
-    )
+    if ai_provider == "Google Gemini":
+        api_key = st.text_input(
+            "Google Gemini API Key",
+            type="password",
+            placeholder="Paste your Gemini API key…",
+            help="Get your free key → https://aistudio.google.com/apikey",
+        )
+
+        model_options = [
+            "gemini-3.6-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-2.5-flash",
+            "gemini-2.5-pro",
+        ]
+        selected_model = st.selectbox(
+            "Select Model",
+            options=model_options,
+            index=0,
+            help="gemini-3.6-flash is recommended for best results",
+        )
+    else:
+        api_key = st.text_input(
+            "OpenAI API Key",
+            type="password",
+            placeholder="Paste your OpenAI API key (sk-…)",
+            help="Get your key → https://platform.openai.com/api-keys",
+        )
+
+        model_options = [
+            "gpt-4o",
+            "gpt-4o-mini",
+            "gpt-4.1",
+            "gpt-4.1-mini",
+        ]
+        selected_model = st.selectbox(
+            "Select Model",
+            options=model_options,
+            index=0,
+            help="gpt-4o is recommended for best results",
+        )
 
     query_count = st.slider(
         "Number of Queries",
@@ -328,11 +356,13 @@ with st.sidebar:
         <div style='padding:1rem; background:rgba(99,102,241,0.08); border-radius:12px;
                     border:1px solid rgba(99,102,241,0.15); font-size:0.8rem; color:#94a3b8;'>
             <strong style='color:#a5b4fc;'>💡 How It Works</strong><br><br>
-            <strong>Mode 1:</strong> Google Search Grounding — extracts <em>real</em>
+            <strong>Gemini Mode 1:</strong> Google Search Grounding — extracts <em>real</em>
             sub-queries from Gemini's search metadata.<br><br>
-            <strong>Mode 2:</strong> AI Prediction — if grounding quota is
-            exceeded, the model predicts realistic fan-out queries.<br><br>
-            Both modes run automatically.
+            <strong>Gemini Mode 2:</strong> AI Prediction — if grounding quota is
+            exceeded, Gemini predicts fan-out queries.<br><br>
+            <strong>ChatGPT:</strong> AI Prediction only — generates realistic
+            fan-out queries using OpenAI models.<br><br>
+            Fallback runs automatically.
         </div>
         """,
         unsafe_allow_html=True,
@@ -341,7 +371,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(
         "<div style='text-align:center; color:#475569; font-size:0.7rem;'>"
-        "Built with ❤️ by Amir • Powered by Gemini</div>",
+        "Built with ❤️ by Amir • Powered by Gemini & ChatGPT</div>",
         unsafe_allow_html=True,
     )
 
@@ -403,8 +433,22 @@ def extract_via_grounding(client, model: str, query: str):
 
 
 def extract_via_prompt(client, model: str, query: str, num_queries: int = 15):
-    """Mode 2 — Prompt-based fan-out query prediction as fallback."""
-    prompt = f"""You are an expert Google Search analyst specializing in how Google AI Overviews work internally.
+    """Mode 2 — Prompt-based fan-out query prediction as fallback (Gemini)."""
+    prompt = _build_fanout_prompt(query, num_queries)
+
+    response = client.models.generate_content(
+        model=model,
+        contents=prompt,
+    )
+
+    answer_text = response.text if response.text else ""
+    fan_out_queries = _parse_numbered_list(answer_text)
+    return fan_out_queries, answer_text
+
+
+def _build_fanout_prompt(query: str, num_queries: int) -> str:
+    """Shared prompt for both Gemini and ChatGPT."""
+    return f"""You are an expert Google Search analyst specializing in how Google AI Overviews work internally.
 
 For the search query: "{query}"
 
@@ -417,30 +461,51 @@ Rules:
 - Return ONLY a numbered list (1. query, 2. query, etc.)
 - No explanations, no headers, no extra text"""
 
-    response = client.models.generate_content(
-        model=model,
-        contents=prompt,
-    )
 
-    answer_text = response.text if response.text else ""
-
-    # Parse numbered list from response
+def _parse_numbered_list(text: str) -> list:
+    """Parse numbered list from AI response."""
     fan_out_queries = []
-    lines = answer_text.strip().split("\n")
+    lines = text.strip().split("\n")
     for line in lines:
         line = line.strip()
-        # Match patterns like "1. query", "1) query", "1- query"
         match = re.match(r'^\d+[\.\)\-]\s*(.+)$', line)
         if match:
             q = match.group(1).strip().strip('"').strip("'")
             if q:
                 fan_out_queries.append(q)
+    return fan_out_queries
 
+
+def extract_via_chatgpt(api_key: str, model: str, query: str, num_queries: int = 15):
+    """Extract fan-out queries using OpenAI ChatGPT."""
+    from openai import OpenAI
+
+    client = OpenAI(api_key=api_key)
+    prompt = _build_fanout_prompt(query, num_queries)
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": "You are an expert Google Search analyst. Return only numbered lists."},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.7,
+    )
+
+    answer_text = response.choices[0].message.content or ""
+    fan_out_queries = _parse_numbered_list(answer_text)
     return fan_out_queries, answer_text
 
 
-def run_extraction(api_key: str, model: str, query: str, num_queries: int = 15):
+def run_extraction(api_key: str, model: str, query: str, num_queries: int = 15, provider: str = "Google Gemini"):
     """Smart dual-mode extraction with automatic fallback."""
+
+    # ── ChatGPT path (prompt-only) ──
+    if provider == "ChatGPT (OpenAI)":
+        fan_out_queries, answer_text = extract_via_chatgpt(api_key, model, query, num_queries)
+        return fan_out_queries, answer_text, "chatgpt"
+
+    # ── Gemini path (grounding → prompt fallback) ──
     from google import genai
 
     client = genai.Client(api_key=api_key)
@@ -473,10 +538,16 @@ def run_extraction(api_key: str, model: str, query: str, num_queries: int = 15):
 if extract_btn:
     # Validation
     if not api_key:
-        st.error(
-            "⚠️ Please enter your Gemini API Key in the sidebar.  \n"
-            "Get a free key → [Google AI Studio](https://aistudio.google.com/apikey)"
-        )
+        if ai_provider == "Google Gemini":
+            st.error(
+                "⚠️ Please enter your Gemini API Key in the sidebar.  \n"
+                "Get a free key → [Google AI Studio](https://aistudio.google.com/apikey)"
+            )
+        else:
+            st.error(
+                "⚠️ Please enter your OpenAI API Key in the sidebar.  \n"
+                "Get your key → [OpenAI Platform](https://platform.openai.com/api-keys)"
+            )
         st.stop()
 
     if not user_query.strip():
@@ -487,15 +558,21 @@ if extract_btn:
     with st.spinner("🔍 Extracting fan-out queries…"):
         try:
             fan_out_queries, answer_text, method_used = run_extraction(
-                api_key, selected_model, user_query.strip(), query_count
+                api_key, selected_model, user_query.strip(), query_count, ai_provider
             )
         except Exception as e:
             error_msg = str(e)
-            if "api_key" in error_msg.lower() or "invalid" in error_msg.lower() or "401" in error_msg:
-                st.error(
-                    "❌ **Invalid API Key.** Please check your key and try again.  \n"
-                    "Get a free key → [Google AI Studio](https://aistudio.google.com/apikey)"
-                )
+            if "api_key" in error_msg.lower() or "invalid" in error_msg.lower() or "401" in error_msg or "incorrect api key" in error_msg.lower():
+                if ai_provider == "Google Gemini":
+                    st.error(
+                        "❌ **Invalid API Key.** Please check your Gemini key and try again.  \n"
+                        "Get a free key → [Google AI Studio](https://aistudio.google.com/apikey)"
+                    )
+                else:
+                    st.error(
+                        "❌ **Invalid API Key.** Please check your OpenAI key and try again.  \n"
+                        "Get your key → [OpenAI Platform](https://platform.openai.com/api-keys)"
+                    )
             else:
                 st.error(f"❌ An error occurred: {error_msg}")
             st.stop()
@@ -513,10 +590,19 @@ if extract_btn:
             '</div>',
             unsafe_allow_html=True,
         )
+    elif method_used == "chatgpt":
+        st.markdown(
+            '<div class="method-banner" style="background:linear-gradient(135deg,rgba(16,163,127,0.12),rgba(16,163,127,0.06));'
+            'border:1px solid rgba(16,163,127,0.25);color:#4ade80;">'
+            '🤖 Generated via <strong>ChatGPT (' + selected_model + ')</strong> — '
+            'AI-predicted fan-out queries for this topic'
+            '</div>',
+            unsafe_allow_html=True,
+        )
     else:
         st.markdown(
             '<div class="method-banner method-prompt">'
-            '🧠 Generated via <strong>AI Prediction Mode</strong> — '
+            '🧠 Generated via <strong>Gemini AI Prediction</strong> — '
             'Gemini predicted realistic fan-out queries for this topic'
             '</div>',
             unsafe_allow_html=True,
@@ -592,7 +678,8 @@ if extract_btn:
         use_container_width=True,
     )
 
-    # ── Gemini Answer Expander ──
+    # ── Gemini/ChatGPT Answer Expander ──
     if answer_text:
-        with st.expander("🤖 View Gemini's Full Answer", expanded=False):
+        expander_label = "🤖 View ChatGPT's Full Answer" if method_used == "chatgpt" else "🤖 View Gemini's Full Answer"
+        with st.expander(expander_label, expanded=False):
             st.markdown(answer_text)
