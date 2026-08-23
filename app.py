@@ -313,6 +313,15 @@ with st.sidebar:
         help="gemini-3.6-flash is recommended for best results",
     )
 
+    query_count = st.slider(
+        "Number of Queries",
+        min_value=5,
+        max_value=30,
+        value=15,
+        step=1,
+        help="AI Prediction mode mein kitni fan-out queries generate karni hain",
+    )
+
     st.markdown("---")
     st.markdown(
         """
@@ -393,13 +402,13 @@ def extract_via_grounding(client, model: str, query: str):
     return fan_out_queries, answer_text
 
 
-def extract_via_prompt(client, model: str, query: str):
+def extract_via_prompt(client, model: str, query: str, num_queries: int = 15):
     """Mode 2 — Prompt-based fan-out query prediction as fallback."""
     prompt = f"""You are an expert Google Search analyst specializing in how Google AI Overviews work internally.
 
 For the search query: "{query}"
 
-Generate 8-12 realistic Fan-Out Queries that Google AI Overview would internally execute as sub-searches to build its answer. These are the hidden decomposed queries Google runs behind the scenes.
+Generate exactly {num_queries} realistic Fan-Out Queries that Google AI Overview would internally execute as sub-searches to build its answer. These are the hidden decomposed queries Google runs behind the scenes.
 
 Rules:
 - Each query should target a specific aspect or sub-topic
@@ -430,7 +439,7 @@ Rules:
     return fan_out_queries, answer_text
 
 
-def run_extraction(api_key: str, model: str, query: str):
+def run_extraction(api_key: str, model: str, query: str, num_queries: int = 15):
     """Smart dual-mode extraction with automatic fallback."""
     from google import genai
 
@@ -443,7 +452,7 @@ def run_extraction(api_key: str, model: str, query: str):
         # If grounding returned no queries, fall back to prompt mode
         if not fan_out_queries:
             method_used = "prompt"
-            fan_out_queries, answer_text = extract_via_prompt(client, model, query)
+            fan_out_queries, answer_text = extract_via_prompt(client, model, query, num_queries)
 
     except Exception as e:
         error_str = str(e).lower()
@@ -451,7 +460,7 @@ def run_extraction(api_key: str, model: str, query: str):
         if any(kw in error_str for kw in ["quota", "rate", "limit", "429", "503", "resource_exhausted", "grounding", "unavailable", "overloaded", "capacity", "high demand"]):
             method_used = "prompt"
             try:
-                fan_out_queries, answer_text = extract_via_prompt(client, model, query)
+                fan_out_queries, answer_text = extract_via_prompt(client, model, query, num_queries)
             except Exception as inner_e:
                 raise inner_e
         else:
@@ -478,7 +487,7 @@ if extract_btn:
     with st.spinner("🔍 Extracting fan-out queries…"):
         try:
             fan_out_queries, answer_text, method_used = run_extraction(
-                api_key, selected_model, user_query.strip()
+                api_key, selected_model, user_query.strip(), query_count
             )
         except Exception as e:
             error_msg = str(e)
