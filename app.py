@@ -320,7 +320,7 @@ with st.sidebar:
             index=0,
             help="gemini-3.6-flash is recommended for best results",
         )
-    else:
+    elif ai_provider == "ChatGPT (OpenAI)":
         api_key = st.text_input(
             "OpenAI API Key",
             type="password",
