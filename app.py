@@ -439,33 +439,31 @@ div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] {
 .stMarkdown, .stMarkdown p, .stMarkdown li { color: #e2e8f0 !important; }
 label, .stTextInput label, .stSelectbox label { color: #94a3b8 !important; font-weight: 600 !important; font-size: 0.82rem !important; }
 
-/* ── Sidebar Text Bright White ── */
+/* ── Sidebar Text — ALL Bright White ── */
 section[data-testid="stSidebar"] label,
 section[data-testid="stSidebar"] .stTextInput label,
 section[data-testid="stSidebar"] .stSelectbox label,
-section[data-testid="stSidebar"] .stSlider label {
-    color: #f1f5f9 !important;
-    font-weight: 600 !important;
-}
-section[data-testid="stSidebar"] .stMarkdown,
-section[data-testid="stSidebar"] .stMarkdown p,
-section[data-testid="stSidebar"] .stMarkdown li,
-section[data-testid="stSidebar"] .stMarkdown span {
-    color: #e2e8f0 !important;
-}
-section[data-testid="stSidebar"] .stSelectbox > div > div,
-section[data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] span {
+section[data-testid="stSidebar"] .stSlider label,
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] span,
+section[data-testid="stSidebar"] div,
+section[data-testid="stSidebar"] li {
     color: #ffffff !important;
+    font-weight: 500 !important;
+}
+section[data-testid="stSidebar"] label {
+    font-weight: 700 !important;
+    font-size: 0.88rem !important;
+}
+section[data-testid="stSidebar"] .stMarkdown h3 {
+    color: #a5b4fc !important;
+    font-weight: 700 !important;
 }
 section[data-testid="stSidebar"] .stTextInput > div > div > input {
     color: #ffffff !important;
 }
 section[data-testid="stSidebar"] .stTextInput > div > div > input::placeholder {
-    color: #94a3b8 !important;
-}
-section[data-testid="stSidebar"] p[data-testid="stTooltipHoverTarget"],
-section[data-testid="stSidebar"] .stTooltipIcon {
-    color: #cbd5e1 !important;
+    color: #64748b !important;
 }
 /* Sidebar slider value */
 section[data-testid="stSidebar"] .stSlider [data-testid="stThumbValue"],
