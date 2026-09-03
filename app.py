@@ -351,8 +351,16 @@ button[kind="primary"] {
     color: #ffffff !important;
 }
 .stSelectbox [data-baseweb="select"] span,
-.stSelectbox [data-baseweb="select"] div[data-baseweb="select-value-container"] span {
+.stSelectbox [data-baseweb="select"] div span,
+.stSelectbox [data-baseweb="select"] [data-baseweb="tag"] span,
+.stSelectbox div[data-baseweb="select"] div[data-baseweb="select-value-container"] *,
+section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] span,
+section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] div span,
+section[data-testid="stSidebar"] .stSelectbox div[role="combobox"] *,
+section[data-testid="stSidebar"] .stSelectbox input {
     color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    opacity: 1 !important;
 }
 /* Dropdown arrow icon */
 .stSelectbox svg {
