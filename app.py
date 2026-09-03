@@ -331,15 +331,57 @@ button[kind="primary"] {
 /* ── Input Styling ── */
 .stTextInput > div > div > input,
 .stSelectbox > div > div {
-    background: rgba(25,25,55,0.5) !important;
-    border: 1px solid rgba(99,102,241,0.15) !important;
+    background: rgba(15,15,40,0.85) !important;
+    border: 1px solid rgba(99,102,241,0.2) !important;
     border-radius: 12px !important;
-    color: #e2e8f0 !important;
+    color: #ffffff !important;
     font-size: 0.9rem !important;
 }
 .stTextInput > div > div > input:focus {
     border-color: rgba(99,102,241,0.45) !important;
     box-shadow: 0 0 20px rgba(99,102,241,0.12) !important;
+}
+/* Selectbox dropdown value text */
+.stSelectbox [data-baseweb="select"] {
+    background: rgba(15,15,40,0.85) !important;
+    border-radius: 12px !important;
+}
+.stSelectbox [data-baseweb="select"] > div {
+    background: transparent !important;
+    color: #ffffff !important;
+}
+.stSelectbox [data-baseweb="select"] span,
+.stSelectbox [data-baseweb="select"] div[data-baseweb="select-value-container"] span {
+    color: #ffffff !important;
+}
+/* Dropdown arrow icon */
+.stSelectbox svg {
+    fill: #a5b4fc !important;
+}
+/* Dropdown menu (opened) */
+[data-baseweb="popover"],
+[data-baseweb="menu"],
+ul[role="listbox"] {
+    background: rgba(15,15,40,0.98) !important;
+    border: 1px solid rgba(99,102,241,0.2) !important;
+    border-radius: 12px !important;
+    backdrop-filter: blur(16px) !important;
+}
+[data-baseweb="menu"] li,
+ul[role="listbox"] li {
+    color: #e2e8f0 !important;
+    background: transparent !important;
+}
+[data-baseweb="menu"] li:hover,
+ul[role="listbox"] li:hover {
+    background: rgba(99,102,241,0.15) !important;
+    color: #ffffff !important;
+}
+/* Selected option highlight */
+[data-baseweb="menu"] li[aria-selected="true"],
+ul[role="listbox"] li[aria-selected="true"] {
+    background: rgba(99,102,241,0.25) !important;
+    color: #ffffff !important;
 }
 
 /* ── Slider ── */
