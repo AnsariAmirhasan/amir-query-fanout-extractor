@@ -783,6 +783,9 @@ if extract_btn:
                          "Please check your billing or upgrade your plan.")
             elif any(kw in err_lower for kw in ["rate", "429", "too many"]):
                 st.warning("⏳ **Rate limited.** Too many requests. Please wait a moment and try again.")
+            elif any(kw in err_lower for kw in ["503", "unavailable", "overloaded", "high demand", "capacity"]):
+                st.warning("🔄 **Model is temporarily overloaded.** High demand right now. "
+                           "Please wait 30 seconds and try again, or switch to a different model/provider.")
             else:
                 st.error(f"❌ An error occurred: {error_msg}")
             st.stop()
