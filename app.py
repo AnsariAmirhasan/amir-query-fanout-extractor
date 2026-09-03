@@ -531,6 +531,56 @@ with st.sidebar:
     )
 
     st.markdown("---")
+    st.markdown("### 🌍 Target Region")
+
+    COUNTRIES = [
+        "🌐 Global (No specific region)",
+        "🇮🇳 India",
+        "🇺🇸 United States",
+        "🇬🇧 United Kingdom",
+        "🇨🇦 Canada",
+        "🇦🇺 Australia",
+        "🇩🇪 Germany",
+        "🇫🇷 France",
+        "🇯🇵 Japan",
+        "🇧🇷 Brazil",
+        "🇲🇽 Mexico",
+        "🇮🇩 Indonesia",
+        "🇹🇷 Turkey",
+        "🇸🇦 Saudi Arabia",
+        "🇦🇪 UAE",
+        "🇿🇦 South Africa",
+        "🇳🇬 Nigeria",
+        "🇰🇷 South Korea",
+        "🇮🇹 Italy",
+        "🇪🇸 Spain",
+        "🇳🇱 Netherlands",
+        "🇸🇬 Singapore",
+        "🇲🇾 Malaysia",
+        "🇵🇭 Philippines",
+        "🇵🇰 Pakistan",
+        "🇧🇩 Bangladesh",
+        "🇪🇬 Egypt",
+        "🇵🇱 Poland",
+        "🇸🇪 Sweden",
+        "🇨🇭 Switzerland",
+        "🇦🇷 Argentina",
+    ]
+
+    selected_country = st.selectbox(
+        "Select Country",
+        options=COUNTRIES,
+        index=0,
+        help="Fan-out queries will be generated for this region's Google results",
+    )
+
+    # Extract clean country name (without emoji)
+    if "Global" in selected_country:
+        country_name = None
+    else:
+        country_name = selected_country.split(" ", 1)[1] if " " in selected_country else None
+
+    st.markdown("---")
     st.markdown(
         """
         <div style='padding:1rem; background:linear-gradient(135deg,rgba(99,102,241,0.06),rgba(168,85,247,0.04));
@@ -585,13 +635,16 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 # ─── Core Extraction Logic ───
 
-def extract_via_grounding(client, model: str, query: str):
+def extract_via_grounding(client, model: str, query: str, country: str = None):
     """Mode 1 — Use Google Search Grounding to extract real fan-out queries."""
     from google.genai import types
 
+    # Add country context to query for regional results
+    search_query = f"{query} in {country}" if country else query
+
     response = client.models.generate_content(
         model=model,
-        contents=query,
+        contents=search_query,
         config=types.GenerateContentConfig(
             tools=[types.Tool(google_search=types.GoogleSearch())]
         ),
@@ -614,9 +667,9 @@ def extract_via_grounding(client, model: str, query: str):
     return fan_out_queries, answer_text
 
 
-def extract_via_prompt(client, model: str, query: str, num_queries: int = 15):
+def extract_via_prompt(client, model: str, query: str, num_queries: int = 15, country: str = None):
     """Mode 2 — Prompt-based fan-out query prediction as fallback (Gemini)."""
-    prompt = _build_fanout_prompt(query, num_queries)
+    prompt = _build_fanout_prompt(query, num_queries, country)
 
     response = client.models.generate_content(
         model=model,
@@ -628,11 +681,15 @@ def extract_via_prompt(client, model: str, query: str, num_queries: int = 15):
     return fan_out_queries, answer_text
 
 
-def _build_fanout_prompt(query: str, num_queries: int) -> str:
+def _build_fanout_prompt(query: str, num_queries: int, country: str = None) -> str:
     """Shared prompt for all providers."""
+    country_ctx = ""
+    if country:
+        country_ctx = f"\n\nIMPORTANT: Generate these queries specifically for the **{country}** market/region. Include local context, local brands, local regulations, local preferences, and region-specific terminology where relevant. The queries should reflect what Google would run for a user searching from {country}."
+
     return f"""You are an expert Google Search analyst specializing in how Google AI Overviews work internally.
 
-For the search query: "{query}"
+For the search query: "{query}"{country_ctx}
 
 Generate exactly {num_queries} realistic Fan-Out Queries that Google AI Overview would internally execute as sub-searches to build its answer. These are the hidden decomposed queries Google runs behind the scenes.
 
@@ -658,12 +715,12 @@ def _parse_numbered_list(text: str) -> list:
     return fan_out_queries
 
 
-def extract_via_chatgpt(api_key: str, model: str, query: str, num_queries: int = 15):
+def extract_via_chatgpt(api_key: str, model: str, query: str, num_queries: int = 15, country: str = None):
     """Extract fan-out queries using OpenAI ChatGPT."""
     from openai import OpenAI
 
     client = OpenAI(api_key=api_key)
-    prompt = _build_fanout_prompt(query, num_queries)
+    prompt = _build_fanout_prompt(query, num_queries, country)
 
     response = client.chat.completions.create(
         model=model,
@@ -679,12 +736,12 @@ def extract_via_chatgpt(api_key: str, model: str, query: str, num_queries: int =
     return fan_out_queries, answer_text
 
 
-def extract_via_claude(api_key: str, model: str, query: str, num_queries: int = 15):
+def extract_via_claude(api_key: str, model: str, query: str, num_queries: int = 15, country: str = None):
     """Extract fan-out queries using Anthropic Claude."""
     import anthropic
 
     client = anthropic.Anthropic(api_key=api_key)
-    prompt = _build_fanout_prompt(query, num_queries)
+    prompt = _build_fanout_prompt(query, num_queries, country)
 
     response = client.messages.create(
         model=model,
@@ -699,17 +756,17 @@ def extract_via_claude(api_key: str, model: str, query: str, num_queries: int = 
     return fan_out_queries, answer_text
 
 
-def run_extraction(api_key: str, model: str, query: str, num_queries: int = 15, provider: str = "Google Gemini"):
+def run_extraction(api_key: str, model: str, query: str, num_queries: int = 15, provider: str = "Google Gemini", country: str = None):
     """Smart dual-mode extraction with automatic fallback."""
 
     # ── ChatGPT path (prompt-only) ──
     if provider == "ChatGPT (OpenAI)":
-        fan_out_queries, answer_text = extract_via_chatgpt(api_key, model, query, num_queries)
+        fan_out_queries, answer_text = extract_via_chatgpt(api_key, model, query, num_queries, country)
         return fan_out_queries, answer_text, "chatgpt"
 
     # ── Claude path (prompt-only) ──
     if provider == "Claude (Anthropic)":
-        fan_out_queries, answer_text = extract_via_claude(api_key, model, query, num_queries)
+        fan_out_queries, answer_text = extract_via_claude(api_key, model, query, num_queries, country)
         return fan_out_queries, answer_text, "claude"
 
     # ── Gemini path (grounding → prompt fallback) ──
@@ -719,12 +776,12 @@ def run_extraction(api_key: str, model: str, query: str, num_queries: int = 15, 
     method_used = "grounding"
 
     try:
-        fan_out_queries, answer_text = extract_via_grounding(client, model, query)
+        fan_out_queries, answer_text = extract_via_grounding(client, model, query, country)
 
         # If grounding returned no queries, fall back to prompt mode
         if not fan_out_queries:
             method_used = "prompt"
-            fan_out_queries, answer_text = extract_via_prompt(client, model, query, num_queries)
+            fan_out_queries, answer_text = extract_via_prompt(client, model, query, num_queries, country)
 
     except Exception as e:
         error_str = str(e).lower()
@@ -733,7 +790,7 @@ def run_extraction(api_key: str, model: str, query: str, num_queries: int = 15, 
                                            "grounding", "unavailable", "overloaded", "capacity", "high demand"]):
             method_used = "prompt"
             try:
-                fan_out_queries, answer_text = extract_via_prompt(client, model, query, num_queries)
+                fan_out_queries, answer_text = extract_via_prompt(client, model, query, num_queries, country)
             except Exception as inner_e:
                 raise inner_e
         else:
@@ -765,7 +822,7 @@ if extract_btn:
     with st.spinner("🔍 Extracting fan-out queries…"):
         try:
             fan_out_queries, answer_text, method_used = run_extraction(
-                api_key, selected_model, user_query.strip(), query_count, ai_provider
+                api_key, selected_model, user_query.strip(), query_count, ai_provider, country_name
             )
         except Exception as e:
             error_msg = str(e)
@@ -866,10 +923,12 @@ if extract_btn:
     st.markdown('<div class="custom-divider"></div>', unsafe_allow_html=True)
 
     # ── CSV Export ──
+    region_label = country_name if country_name else "Global"
     df = pd.DataFrame({
         "No.": list(range(1, total_queries + 1)),
         "Fan-Out Query": fan_out_queries,
         "Original Query": [user_query] * total_queries,
+        "Country": [region_label] * total_queries,
         "Method": [method_used] * total_queries,
         "Model": [selected_model] * total_queries,
         "Provider": [ai_provider] * total_queries,
