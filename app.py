@@ -397,6 +397,47 @@ div[data-testid="stExpander"] div[data-testid="stExpanderDetails"] {
 .stMarkdown, .stMarkdown p, .stMarkdown li { color: #e2e8f0 !important; }
 label, .stTextInput label, .stSelectbox label { color: #94a3b8 !important; font-weight: 600 !important; font-size: 0.82rem !important; }
 
+/* ── Sidebar Text Bright White ── */
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] .stTextInput label,
+section[data-testid="stSidebar"] .stSelectbox label,
+section[data-testid="stSidebar"] .stSlider label {
+    color: #f1f5f9 !important;
+    font-weight: 600 !important;
+}
+section[data-testid="stSidebar"] .stMarkdown,
+section[data-testid="stSidebar"] .stMarkdown p,
+section[data-testid="stSidebar"] .stMarkdown li,
+section[data-testid="stSidebar"] .stMarkdown span {
+    color: #e2e8f0 !important;
+}
+section[data-testid="stSidebar"] .stSelectbox > div > div,
+section[data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] span {
+    color: #ffffff !important;
+}
+section[data-testid="stSidebar"] .stTextInput > div > div > input {
+    color: #ffffff !important;
+}
+section[data-testid="stSidebar"] .stTextInput > div > div > input::placeholder {
+    color: #94a3b8 !important;
+}
+section[data-testid="stSidebar"] p[data-testid="stTooltipHoverTarget"],
+section[data-testid="stSidebar"] .stTooltipIcon {
+    color: #cbd5e1 !important;
+}
+/* Sidebar slider value */
+section[data-testid="stSidebar"] .stSlider [data-testid="stThumbValue"],
+section[data-testid="stSidebar"] .stSlider [data-testid="stTickBarMin"],
+section[data-testid="stSidebar"] .stSlider [data-testid="stTickBarMax"] {
+    color: #ffffff !important;
+}
+/* Dropdown option text in menu */
+[data-baseweb="popover"] li,
+[data-baseweb="popover"] ul div,
+[data-baseweb="menu"] li {
+    color: #e2e8f0 !important;
+}
+
 /* ── Error/Warning Styling ── */
 div[data-testid="stAlert"] {
     border-radius: 14px !important;
